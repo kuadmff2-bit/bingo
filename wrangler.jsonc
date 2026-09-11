@@ -4,6 +4,15 @@
   "main": "./worker/index.js",
   "compatibility_date": "2026-09-11",
   "keep_vars": true,
+  "vars": {
+    "ADMIN_EMAIL": "kuadmff2@gmail.com",
+    "ADMIN_NAME": "Carlos",
+    "ALLOW_PUBLIC_REGISTRATION": "false",
+    "ORGANIZATION_NAME": "BINGASSO DO EL GATO"
+  },
+  "secrets": {
+    "required": ["ADMIN_PASSWORD", "JWT_SECRET"]
+  },
   "assets": {
     "directory": "./frontend/dist",
     "binding": "ASSETS",
