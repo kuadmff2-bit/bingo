@@ -1,0 +1,8 @@
+{
+  "name": "bingo-facil-cloudflare",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix frontend install --no-audit --no-fund && npm --prefix frontend run build"
+  }
+}

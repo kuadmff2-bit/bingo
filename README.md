@@ -1,70 +1,65 @@
-# Bingo Fácil
+# Bingo Fácil — Cloudflare
 
-Plataforma completa para criação, gestão, sorteio, conferência e relatórios de bingos.
+Versão preparada para publicar no Cloudflare Pages.
 
-## Stack
+## Arquitetura de produção
 
-- Backend: Node.js + Express + Prisma + SQLite
-- Frontend: React + Vite
-- Autenticação: JWT com hash seguro em bcrypt
-- Segurança: helmet, CORS, rate limiting, validação de entrada
-- Banco: SQLite para desenvolvimento local, pronto para migrar para PostgreSQL/MySQL
+- Frontend: React + Vite (Cloudflare Pages)
+- API: Cloudflare Pages Functions (`functions/api/[[path]].js`)
+- Banco: Cloudflare D1, binding obrigatório com o nome `DB`
+- Autenticação: JWT HMAC-SHA256 e senhas derivadas com PBKDF2-SHA256
+- Banco inicializado automaticamente pela API no primeiro acesso
 
-## Estrutura principal
+O backend antigo em Express/Prisma/SQLite não é usado no deploy Cloudflare, pois SQLite local e um servidor Express persistente não são compatíveis com o runtime do Pages Functions.
 
-- `backend/` – API e regras de negócio
-- `frontend/` – painel web e páginas públicas
-- `docs/` – documentação complementares
+## Publicar no Cloudflare Pages
 
-## Início rápido
+1. Conecte este repositório ao Cloudflare Pages.
+2. Em **Build settings** use:
+   - Framework preset: `None` ou `Vite`
+   - Build command: `npm run build`
+   - Build output directory: `frontend/dist`
+   - Root directory: `/` (raiz do repositório)
+3. Crie um banco **D1** no painel do Cloudflare.
+4. No projeto Pages, abra **Settings > Bindings > Add > D1 database** e vincule o banco usando exatamente o nome de variável `DB`.
+5. Em **Settings > Variables and Secrets**, configure:
+   - `JWT_SECRET`: segredo aleatório com no mínimo 32 caracteres.
+   - `ADMIN_EMAIL`: e-mail do primeiro administrador.
+   - `ADMIN_PASSWORD`: senha forte com no mínimo 10 caracteres.
+   - `ADMIN_NAME`: nome do administrador (opcional).
+   - `ORGANIZATION_NAME`: nome da organização (opcional).
+   - `ALLOW_PUBLIC_REGISTRATION`: mantenha `false` se não quiser cadastro público.
+6. Faça um novo deploy após configurar o D1 e as variáveis.
 
-1. Copie o arquivo `.env.example` para `.env` na raiz do projeto e ajuste os valores.
-2. Instale as dependências:
-   - `npm install --prefix backend`
-   - `npm install --prefix frontend`
-3. Gere o cliente Prisma:
-   - `npx prisma --prefix backend generate`
-4. Rode as migrações:
-   - `npx prisma --prefix backend migrate dev --name init`
-5. Inicie os serviços:
-   - `npm --prefix backend run dev`
-   - `npm --prefix frontend run dev`
+Na primeira chamada à API, as tabelas são criadas automaticamente e, se `ADMIN_EMAIL` e `ADMIN_PASSWORD` estiverem configurados, o usuário administrador também é criado automaticamente.
 
-## Usuário administrador padrão
+## Rotas principais
 
-O seed inicial cria um usuário admin com:
+- `GET /api/health`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `GET /api/bingos/dashboard`
+- `GET /api/bingos`
+- `POST /api/bingos`
+- `POST /api/cards/generate`
+- `GET /api/cards/verify/:qrCodeValue`
+- `GET /api/public/bingo/:slug`
+- `GET /api/admin/overview`
 
-- e-mail: `admin@bingofacil.local`
-- senha: `Admin@123`
+## Desenvolvimento local do frontend
 
-## Funcionalidades implementadas
+```bash
+cd frontend
+npm ci
+npm run dev
+```
 
-- cadastro e login com autenticação JWT
-- dashboard de métricas
-- criação de bingos e prêmios
-- geração de cartelas
-- sorteio com histórico e controles
-- conferência de cartela com QR Code
-- página pública do evento
-- painel administrativo
-- logs de auditoria
-- documentação e exemplos de ambiente
-
-## Deploy
-
-- Backend em container/VM com variável `PORT`
-- Frontend em Vercel/Netlify/servlet estático
-- Banco em PostgreSQL em produção, mantendo a mesma estrutura Prisma
+Para testar as Pages Functions localmente, use o Wrangler/Cloudflare Pages com um binding D1 local.
 
 ## Segurança
 
-- nunca armazenar senhas em texto puro
-- validação de entradas no backend
-- autenticação com JWT
-- headers de segurança
-- rate limiting
-- CORS configurado
-
-## Observações
-
-Este projeto foi estruturado para evoluir como produto comercial real, com expansão para planos, múltiplos organizadores e integrações futuras.
+- `.env` e arquivos locais sensíveis permanecem ignorados pelo Git.
+- Não coloque `JWT_SECRET`, senha do administrador, tokens ou IDs privados diretamente no código.
+- O formulário de login não contém mais credenciais padrão predefinidas.
+- Cadastro público vem desativado por padrão.
+- A aplicação inclui headers de segurança para o conteúdo estático e para a API.
