@@ -1,9 +1,10 @@
 {
   "name": "bingo-facil-cloudflare",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "npm --prefix frontend install --no-audit --no-fund && npm --prefix frontend run build",
-    "check": "node --check 'functions/api/[[path]].js'"
+    "build": "node scripts/build-check.mjs",
+    "check": "node --check worker/index.js && node --check public/app.js"
   }
 }
