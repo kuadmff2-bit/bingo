@@ -16,7 +16,7 @@ Aplicação de gestão de bingos preparada para Cloudflare Pages + Pages Functio
 - página pública do evento em `/evento/:slug`, atualizada automaticamente durante o sorteio
 - validação pública de cartela pela API
 - dashboard de métricas
-- auditoria das principais ações
+- logs básicos de auditoria
 - workflow do GitHub Actions para validar sintaxe e build a cada atualização da `main`
 
 ## Arquitetura
@@ -69,7 +69,6 @@ A API aplica o schema do D1 automaticamente quando necessário e mantém uma ver
 
 ### Cartelas e vendas
 - `POST /api/cards/generate`
-- `GET /api/cards?bingoId=...`
 - `POST /api/cards/sell`
 - `GET /api/cards/verify/:codigo`
 
@@ -80,7 +79,6 @@ A API aplica o schema do D1 automaticamente quando necessário e mantém uma ver
 ### Sistema
 - `GET /api/health`
 - `GET /api/setup/status`
-- `GET /api/admin/overview`
 
 ## Desenvolvimento
 
@@ -95,7 +93,7 @@ Para testar Pages Functions localmente, use Wrangler/Pages com um binding D1 loc
 
 - `.env`, `.dev.vars`, banco local e dependências ficam fora do Git.
 - Nenhuma senha real ou `JWT_SECRET` fica no código.
-- Cadastro público vem desativado por padrão.
+- Cadastro público não é exposto pelo frontend.
 - Login possui bloqueio temporário após várias tentativas incorretas.
 - A API usa consultas preparadas no D1.
 - O frontend inclui CSP e outros headers defensivos.
