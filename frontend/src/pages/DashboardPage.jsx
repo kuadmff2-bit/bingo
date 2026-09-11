@@ -1,90 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api';
-
-export default function DashboardPage({ onLogout }) {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const token = localStorage.getItem('bingo_token');
-    axios.get(`${API_URL}/bingos/dashboard`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setStats(res.data.stats))
-      .catch(() => setStats({ totalBingos: 0, activeBingos: 0, closedBingos: 0, totalCards: 0, soldCards: 0, availableCards: 0, estimatedRevenue: 0, participants: 0 }))
-      .finally(() => setLoading(false));
-  }, []);
-
-  return (
-    <div className="app-shell">
-      <div className="container">
-        <nav className="navbar card">
-          <div className="brand">Bingo <span>Fácil</span></div>
-          <div className="topbar-actions">
-            <button className="btn btn-secondary">Criar bingo</button>
-            <button className="btn btn-primary" onClick={onLogout}>Sair</button>
-          </div>
-        </nav>
-
-        <section className="hero">
-          <div className="hero-copy card">
-            <h1>Seu bingo em um painel profissional.</h1>
-            <p>Gerencie eventos, cartelas, vendas, prêmios, sorteios e relatórios em uma plataforma organizada e fácil de operar.</p>
-            <div className="hero-actions">
-              <button className="btn btn-primary">Criar bingo</button>
-              <button className="btn btn-secondary">Gerar cartelas</button>
-            </div>
-          </div>
-          <div className="hero-panel card">
-            <div className="section-header">
-              <h2>Próximos eventos</h2>
-            </div>
-            <ul className="pitch-list">
-              <li>Bingo Beneficente — 12/10 às 20:00</li>
-              <li>Feira da Comunidade — 18/10 às 19:30</li>
-              <li>Evento Solidário — 25/10 às 18:00</li>
-            </ul>
-          </div>
-        </section>
-
-        <section className="dashboard-grid">
-          {loading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="card metric-card"><div style={{ height: 18, background: '#eef3ff', borderRadius: 8, marginBottom: 10 }} />
-                <div style={{ height: 28, background: '#eef3ff', borderRadius: 8, width: '60%' }} /></div>
-            ))
-          ) : (
-            <>
-              <div className="card metric-card"><div className="metric-label">Bingos criados</div><div className="metric-value">{stats?.totalBingos ?? 0}</div></div>
-              <div className="card metric-card"><div className="metric-label">Bingos ativos</div><div className="metric-value">{stats?.activeBingos ?? 0}</div></div>
-              <div className="card metric-card"><div className="metric-label">Cartelas vendidas</div><div className="metric-value">{stats?.soldCards ?? 0}</div></div>
-              <div className="card metric-card"><div className="metric-label">Receita estimada</div><div className="metric-value">R$ {Number(stats?.estimatedRevenue ?? 0).toFixed(2)}</div></div>
-            </>
-          )}
-        </section>
-
-        <section className="card section" style={{ padding: 24 }}>
-          <div className="section-header">
-            <h2>Resumo rápido</h2>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Indicador</th>
-                  <th>Atual</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>Cartelas disponíveis</td><td>{stats?.availableCards ?? 0}</td><td><span className="badge success">Disponível</span></td></tr>
-                <tr><td>Participantes</td><td>{stats?.participants ?? 0}</td><td><span className="badge warning">Ativo</span></td></tr>
-                <tr><td>Bingos encerrados</td><td>{stats?.closedBingos ?? 0}</td><td><span className="badge danger">Finalizados</span></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+const API_URL=import.meta.env.VITE_API_URL||'/api';
+const headers=()=>({Authorization:`Bearer ${localStorage.getItem('bingo_token')||''}`});
+const empty={totalBingos:0,activeBingos:0,totalCards:0,soldCards:0,estimatedRevenue:0};
+const initial={name:'',description:'',organizer:'',eventDate:'',startTime:'',location:'',contactInfo:'',totalCards:100,cardPrice:10,type:'75',status:'active'};
+export default function DashboardPage({onLogout}){
+ const [stats,setStats]=useState(null),[bingos,setBingos]=useState([]),[selected,setSelected]=useState(''),[panel,setPanel]=useState('overview'),[form,setForm]=useState(initial),[qty,setQty]=useState(10),[cards,setCards]=useState([]),[sale,setSale]=useState({cardNumber:'',buyerName:'',buyerPhone:'',paidValue:'',paymentMethod:'pix'}),[prize,setPrize]=useState({name:'',value:'',description:''}),[draw,setDraw]=useState([]),[busy,setBusy]=useState(false),[notice,setNotice]=useState({type:'',text:''}),[loading,setLoading]=useState(true);
+ const current=useMemo(()=>bingos.find(b=>b.id===selected)||null,[bingos,selected]);
+ const fail=(e,msg)=>{if(e.response?.status===401)return onLogout();setNotice({type:'error',text:e.response?.data?.message||msg})};
+ const load=async()=>{setLoading(true);try{const [a,b]=await Promise.all([axios.get(`${API_URL}/bingos/dashboard`,{headers:headers()}),axios.get(`${API_URL}/bingos`,{headers:headers()})]);setStats(a.data.stats||empty);const list=b.data.bingos||[];setBingos(list);setSelected(s=>s||list[0]?.id||'')}catch(e){setStats(empty);fail(e,'Não foi possível carregar o painel.')}finally{setLoading(false)}};
+ useEffect(()=>{load()},[]);
+ useEffect(()=>{if(!selected)return setDraw([]);axios.get(`${API_URL}/bingos/${encodeURIComponent(selected)}/draw`,{headers:headers()}).then(r=>setDraw(r.data.numbers||[])).catch(e=>e.response?.status===401?onLogout():setDraw([]))},[selected]);
+ const action=async(fn)=>{setBusy(true);setNotice({type:'',text:''});try{await fn()}finally{setBusy(false)}};
+ const create=async e=>{e.preventDefault();await action(async()=>{try{const r=await axios.post(`${API_URL}/bingos`,{...form,totalCards:Number(form.totalCards),cardPrice:Number(form.cardPrice)},{headers:headers()});setNotice({type:'success',text:`Bingo “${r.data.bingo.name}” criado.`});setForm(initial);await load();setSelected(r.data.bingo.id);setPanel('overview')}catch(x){fail(x,'Não foi possível criar o bingo.')}})};
+ const generate=async e=>{e.preventDefault();if(!selected)return setNotice({type:'error',text:'Selecione um bingo.'});await action(async()=>{try{const r=await axios.post(`${API_URL}/cards/generate`,{bingoId:selected,quantity:Number(qty)},{headers:headers()});setCards(r.data.cards||[]);setNotice({type:'success',text:`${r.data.created} cartela(s) gerada(s). Restam ${r.data.remaining}.`});await load()}catch(x){fail(x,'Não foi possível gerar cartelas.')}})};
+ const sell=async e=>{e.preventDefault();await action(async()=>{try{await axios.post(`${API_URL}/cards/sell`,{bingoId:selected,cardNumber:Number(sale.cardNumber),buyerName:sale.buyerName,buyerPhone:sale.buyerPhone,paidValue:sale.paidValue===''?undefined:Number(sale.paidValue),paymentMethod:sale.paymentMethod},{headers:headers()});setNotice({type:'success',text:`Venda da cartela ${sale.cardNumber} registrada.`});setSale({cardNumber:'',buyerName:'',buyerPhone:'',paidValue:'',paymentMethod:'pix'});await load()}catch(x){fail(x,'Não foi possível registrar a venda.')}})};
+ const addPrize=async e=>{e.preventDefault();await action(async()=>{try{await axios.post(`${API_URL}/bingos/${encodeURIComponent(selected)}/prizes`,[{name:prize.name,value:prize.value===''?null:Number(prize.value),description:prize.description}],{headers:headers()});setPrize({name:'',value:'',description:''});setNotice({type:'success',text:'Prêmio adicionado.'});await load()}catch(x){fail(x,'Não foi possível adicionar o prêmio.')}})};
+ const drawOne=()=>action(async()=>{try{const r=await axios.post(`${API_URL}/bingos/${encodeURIComponent(selected)}/draw`,{},{headers:headers()});setDraw(v=>[...v,{value:r.data.value,position:r.data.position}]);setNotice({type:'success',text:`Número sorteado: ${r.data.value}`})}catch(x){fail(x,'Não foi possível sortear.')}});
+ const reset=()=>{if(!selected||!window.confirm('Reiniciar todo o sorteio?'))return;action(async()=>{try{await axios.post(`${API_URL}/bingos/${encodeURIComponent(selected)}/draw/reset`,{},{headers:headers()});setDraw([]);setNotice({type:'success',text:'Sorteio reiniciado.'})}catch(x){fail(x,'Não foi possível reiniciar.')}})};
+ return <div className="app-shell"><div className="container">
+  <nav className="navbar card"><div className="brand">Bingo <span>Fácil</span></div><div className="topbar-actions"><button className="btn btn-secondary" onClick={()=>setPanel('create')}>Criar bingo</button><button className="btn btn-primary" onClick={onLogout}>Sair</button></div></nav>
+  {notice.text&&<div className={`notice ${notice.type==='error'?'notice-error':'notice-success'}`}>{notice.text}<button onClick={()=>setNotice({type:'',text:''})}>×</button></div>}
+  <section className="hero"><div className="hero-copy card"><h1>Seu bingo em um painel profissional.</h1><p>Crie eventos, gere cartelas reais, registre vendas, cadastre prêmios e faça o sorteio em um só lugar.</p><div className="hero-actions"><button className="btn btn-primary" onClick={()=>setPanel('create')}>Criar bingo</button><button className="btn btn-secondary" onClick={()=>setPanel('cards')}>Gerar cartelas</button><button className="btn btn-secondary" onClick={()=>setPanel('draw')}>Abrir sorteio</button></div></div><div className="hero-panel card"><div className="section-header"><h2>Bingo selecionado</h2></div>{bingos.length?<><select className="select" value={selected} onChange={e=>setSelected(e.target.value)}>{bingos.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>{current&&<ul className="pitch-list compact-list" style={{marginTop:14}}><li>{current.cards_count||0} de {current.total_cards} cartelas geradas</li><li>{current.prizes_count||0} prêmio(s) • {current.drawn_count||0} número(s) sorteado(s)</li></ul>}</>:<p className="muted">Crie seu primeiro bingo para começar.</p>}</div></section>
+  <section className="dashboard-grid">{loading?Array.from({length:4},(_,i)=><div key={i} className="card metric-card"><div className="skeleton short"/><div className="skeleton value"/></div>):<><div className="card metric-card"><div className="metric-label">Bingos criados</div><div className="metric-value">{stats?.totalBingos||0}</div></div><div className="card metric-card"><div className="metric-label">Bingos ativos</div><div className="metric-value">{stats?.activeBingos||0}</div></div><div className="card metric-card"><div className="metric-label">Cartelas vendidas</div><div className="metric-value">{stats?.soldCards||0}</div></div><div className="card metric-card"><div className="metric-label">Receita registrada</div><div className="metric-value">R$ {Number(stats?.estimatedRevenue||0).toFixed(2)}</div></div></>}</section>
+  {panel==='create'&&<section className="card section form-card"><div className="section-header"><h2>Criar bingo</h2><button className="link-button" onClick={()=>setPanel('overview')}>Fechar</button></div><form className="form-grid two-columns" onSubmit={create}><div><label className="label">Nome</label><input className="input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required maxLength="120"/></div><div><label className="label">Organizador</label><input className="input" value={form.organizer} onChange={e=>setForm({...form,organizer:e.target.value})}/></div><div><label className="label">Data</label><input className="input" type="date" value={form.eventDate} onChange={e=>setForm({...form,eventDate:e.target.value})}/></div><div><label className="label">Hora</label><input className="input" type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></div><div><label className="label">Local</label><input className="input" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></div><div><label className="label">Contato</label><input className="input" value={form.contactInfo} onChange={e=>setForm({...form,contactInfo:e.target.value})}/></div><div><label className="label">Total de cartelas</label><input className="input" type="number" min="1" max="100000" value={form.totalCards} onChange={e=>setForm({...form,totalCards:e.target.value})} required/></div><div><label className="label">Preço</label><input className="input" type="number" min="0" step="0.01" value={form.cardPrice} onChange={e=>setForm({...form,cardPrice:e.target.value})} required/></div><div><label className="label">Formato</label><select className="select" value={form.type} onChange={e=>setForm({...form,type:e.target.value})}><option value="75">75 bolas</option><option value="90">90 bolas</option></select></div><div><label className="label">Status</label><select className="select" value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option value="draft">Rascunho</option><option value="active">Ativo</option><option value="closed">Encerrado</option></select></div><div className="full-column"><label className="label">Descrição</label><textarea className="textarea" rows="3" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></div><div className="full-column"><button className="btn btn-primary" disabled={busy}>{busy?'Salvando...':'Criar bingo'}</button></div></form></section>}
+  {panel==='cards'&&<section className="card section form-card"><div className="section-header"><h2>Gerar cartelas</h2><button className="link-button" onClick={()=>setPanel('overview')}>Fechar</button></div><form className="form-grid inline-form" onSubmit={generate}><div><label className="label">Bingo</label><select className="select" value={selected} onChange={e=>setSelected(e.target.value)} required><option value="">Selecione</option>{bingos.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div><div><label className="label">Quantidade por lote</label><input className="input" type="number" min="1" max="400" value={qty} onChange={e=>setQty(e.target.value)} required/></div><div className="form-action"><button className="btn btn-primary" disabled={busy||!selected}>{busy?'Gerando...':'Gerar cartelas'}</button></div></form>{cards.length>0&&<div className="generated-grid">{cards.slice(0,6).map(c=><div className="mini-card" key={c.id}><strong>Cartela #{c.cardNumber}</strong><small>Código: {c.validationCode}</small><div className={`number-grid number-grid-${c.numbers?.[0]?.length||5}`}>{(c.numbers||[]).flat().map((n,i)=><span key={i} className={n===0?'free-cell':''}>{n===0?'★':n}</span>)}</div></div>)}</div>}</section>}
+  {panel==='sales'&&<section className="card section form-card"><div className="section-header"><h2>Registrar venda</h2><button className="link-button" onClick={()=>setPanel('overview')}>Fechar</button></div><form className="form-grid two-columns" onSubmit={sell}><div><label className="label">Número da cartela</label><input className="input" type="number" min="1" value={sale.cardNumber} onChange={e=>setSale({...sale,cardNumber:e.target.value})} required/></div><div><label className="label">Comprador</label><input className="input" value={sale.buyerName} onChange={e=>setSale({...sale,buyerName:e.target.value})}/></div><div><label className="label">Telefone</label><input className="input" value={sale.buyerPhone} onChange={e=>setSale({...sale,buyerPhone:e.target.value})}/></div><div><label className="label">Valor pago</label><input className="input" type="number" min="0" step="0.01" value={sale.paidValue} onChange={e=>setSale({...sale,paidValue:e.target.value})}/></div><div><label className="label">Pagamento</label><select className="select" value={sale.paymentMethod} onChange={e=>setSale({...sale,paymentMethod:e.target.value})}><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option></select></div><div className="full-column"><button className="btn btn-primary" disabled={busy||!selected}>Registrar venda</button></div></form></section>}
+  {panel==='prizes'&&<section className="card section form-card"><div className="section-header"><h2>Adicionar prêmio</h2><button className="link-button" onClick={()=>setPanel('overview')}>Fechar</button></div><form className="form-grid two-columns" onSubmit={addPrize}><div><label className="label">Nome</label><input className="input" value={prize.name} onChange={e=>setPrize({...prize,name:e.target.value})} required/></div><div><label className="label">Valor</label><input className="input" type="number" min="0" step="0.01" value={prize.value} onChange={e=>setPrize({...prize,value:e.target.value})}/></div><div className="full-column"><label className="label">Descrição</label><input className="input" value={prize.description} onChange={e=>setPrize({...prize,description:e.target.value})}/></div><div className="full-column"><button className="btn btn-primary" disabled={busy||!selected}>Adicionar prêmio</button></div></form></section>}
+  {panel==='draw'&&<section className="card section form-card"><div className="section-header"><h2>Sorteio</h2><button className="link-button" onClick={()=>setPanel('overview')}>Fechar</button></div><div className="draw-toolbar"><select className="select" value={selected} onChange={e=>setSelected(e.target.value)}><option value="">Selecione</option>{bingos.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select><button className="btn btn-primary" onClick={drawOne} disabled={busy||!selected}>Sortear número</button><button className="btn btn-secondary" onClick={reset} disabled={busy||!draw.length}>Reiniciar</button></div><div className="draw-current">{draw.length?draw[draw.length-1].value:'—'}</div><div className="draw-history">{draw.map(x=><span key={`${x.position}-${x.value}`}>{x.value}</span>)}</div></section>}
+  <section className="card section" style={{padding:24}}><div className="section-header"><h2>Seus bingos</h2><div className="table-actions"><button className="link-button" onClick={()=>setPanel('sales')}>Registrar venda</button><button className="link-button" onClick={()=>setPanel('prizes')}>Adicionar prêmio</button></div></div><div className="table-wrap"><table><thead><tr><th>Evento</th><th>Status</th><th>Cartelas</th><th>Preço</th><th>Página pública</th></tr></thead><tbody>{bingos.map(b=><tr key={b.id}><td><strong>{b.name}</strong><br/><small>{b.event_date||'Data não definida'} {b.start_time||''}</small></td><td><span className={`badge ${b.status==='active'?'success':b.status==='closed'?'danger':'warning'}`}>{b.status}</span></td><td>{b.cards_count||0}/{b.total_cards}</td><td>R$ {Number(b.card_price||0).toFixed(2)}</td><td><a className="text-link" href={`/evento/${encodeURIComponent(b.public_slug)}`} target="_blank" rel="noreferrer">Abrir evento</a></td></tr>)}{!loading&&!bingos.length&&<tr><td colSpan="5" className="empty-row">Nenhum bingo criado ainda.</td></tr>}</tbody></table></div></section>
+ </div></div>
 }
