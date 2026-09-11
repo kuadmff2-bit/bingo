@@ -10,6 +10,13 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bingo-facil-db",
+      "database_id": "f4c6d718-7eff-4f87-a4d1-48826981fb17"
+    }
+  ],
   "observability": {
     "enabled": true
   }
