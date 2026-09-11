@@ -1,0 +1,27 @@
+name: Build check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Install frontend dependencies
+        run: npm install --prefix frontend --no-audit --no-fund
+      - name: Check Pages Function syntax
+        run: node --check 'functions/api/[[path]].js'
+      - name: Build frontend
+        run: npm run build --prefix frontend
