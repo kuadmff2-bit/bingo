@@ -7,12 +7,13 @@ export default function LoginPage({ onLogin }) {
   const [form, setForm] = useState({ email: '', password: '' });
   const [message, setMessage] = useState('');
   const [setupPending, setSetupPending] = useState(false);
+  const [setupError, setSetupError] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     axios.get(`${API_URL}/setup/status`)
-      .then((response) => setSetupPending(!response.data?.initialized))
-      .catch(() => setSetupPending(false));
+      .then((response) => { setSetupPending(!response.data?.initialized); setSetupError(false); })
+      .catch(() => { setSetupPending(true); setSetupError(true); });
   }, []);
 
   const handleSubmit = async (event) => {
@@ -40,7 +41,7 @@ export default function LoginPage({ onLogin }) {
 
         {setupPending && (
           <div className="badge warning" style={{ display: 'block', borderRadius: 12, marginBottom: 14, lineHeight: 1.5 }}>
-            Configuração inicial pendente. No Cloudflare, configure ADMIN_EMAIL, ADMIN_PASSWORD e JWT_SECRET e faça um novo deploy.
+            {setupError ? 'A API ainda não está pronta. Confira o binding D1 chamado DB e as variáveis do Cloudflare.' : 'Configuração inicial pendente. No Cloudflare, configure ADMIN_EMAIL, ADMIN_PASSWORD e JWT_SECRET e faça um novo deploy.'}
           </div>
         )}
 
