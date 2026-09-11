@@ -7,17 +7,8 @@
   "vars": {
     "ADMIN_EMAIL": "kuadmff2@gmail.com",
     "ADMIN_NAME": "Carlos",
-    "ALLOW_PUBLIC_REGISTRATION": "false",
-    "ORGANIZATION_NAME": "BINGASSO DO EL GATO"
-  },
-  "secrets": {
-    "required": ["ADMIN_PASSWORD", "JWT_SECRET"]
-  },
-  "assets": {
-    "directory": "./frontend/dist",
-    "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "ORGANIZATION_NAME": "BINGASSO DO EL GATO",
+    "ALLOW_PUBLIC_REGISTRATION": "false"
   },
   "d1_databases": [
     {
@@ -26,7 +17,11 @@
       "database_id": "6b4bb2d3-0881-466e-84dc-2ccf6e81db3b"
     }
   ],
-  "observability": {
-    "enabled": true
-  }
+  "assets": {
+    "directory": "./frontend",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": { "enabled": true }
 }
