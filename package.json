@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build-check.mjs",
-    "check": "node --check worker/index.js && node --check public/app.js"
+    "build": "node --check worker/index.js && node --check frontend/vite.config.js"
   }
 }
